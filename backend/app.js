@@ -14,9 +14,10 @@ const PORT = process.env.PORT || 3000;
 app.use(cors({
   origin: process.env.NODE_ENV === 'production'
     ? [
-      process.env.FRONTEND_URL || 'https://ecovolt.vercel.app',
-      'https://ecovolt-frontend.vercel.app',
-      'https://ecovolt.vercel.app'
+      process.env.FRONTEND_URL || 'https://ecovolt-nu.vercel.app',
+      'https://ecovolt-nu.vercel.app',
+      'https://ecovolt.vercel.app',
+      'https://ecovolt-frontend.vercel.app'
     ]
     : ['http://localhost:3000', 'http://localhost:8080', 'http://localhost:5173'], // Common frontend dev ports
   credentials: true
