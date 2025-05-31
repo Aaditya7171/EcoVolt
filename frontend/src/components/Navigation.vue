@@ -5,12 +5,10 @@
         <!-- Logo and Brand -->
         <div class="flex items-center space-x-4">
           <router-link to="/chargers" class="flex items-center space-x-3 group">
-            <div class="w-10 h-10 rounded-xl shadow-lg group-hover:shadow-xl group-hover:scale-105 transition-all duration-300 overflow-hidden">
-              <img
-                src="/logo.png"
-                alt="EcoVolt Logo"
-                class="w-full h-full object-contain"
-              />
+            <div class="w-10 h-10 rounded-xl shadow-lg group-hover:shadow-xl group-hover:scale-105 transition-all duration-300 overflow-hidden bg-primary-600 flex items-center justify-center">
+              <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z"/>
+              </svg>
             </div>
             <div class="flex flex-col">
               <span class="text-xl font-bold text-gray-900 dark:text-white group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
