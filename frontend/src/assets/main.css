@@ -1,0 +1,298 @@
+@import './base.css';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom CSS Variables for Theme */
+:root {
+  --color-primary: #43A047;
+  /* Sea green */
+  --color-primary-dark: #2e7d32;
+  --color-accent: #80CBC4;
+  /* Soft teal */
+  --color-success: #43A047;
+  --color-warning: #f59e0b;
+  --color-danger: #ef4444;
+
+  /* Light theme colors */
+  --color-bg-light: #FAFAFA;
+  --color-bg-alt-light: #F1F8E9;
+  --color-text-light: #37474F;
+  --color-text-secondary-light: #546E7A;
+
+  /* Theme transition */
+  transition: background-color 0.3s ease-in-out, color 0.3s ease-in-out;
+}
+
+/* Enhanced animations and effects */
+.card {
+  @apply transition-all duration-300 ease-in-out;
+}
+
+.card:hover {
+  @apply shadow-xl;
+}
+
+/* Gradient text utilities */
+.gradient-text-primary {
+  background: linear-gradient(135deg, #43A047, #2e7d32);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.gradient-text-accent {
+  background: linear-gradient(135deg, #80CBC4, #4db6ac);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.gradient-text-green {
+  background: linear-gradient(135deg, #43A047, #388e3c);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.gradient-text-purple {
+  background: linear-gradient(135deg, #a855f7, #7c3aed);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.gradient-text-orange {
+  background: linear-gradient(135deg, #f97316, #ea580c);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Hover glow effects */
+.hover-glow-primary:hover {
+  box-shadow: 0 0 20px rgba(67, 160, 71, 0.3), 0 0 40px rgba(67, 160, 71, 0.1);
+}
+
+.hover-glow-accent:hover {
+  box-shadow: 0 0 20px rgba(128, 203, 196, 0.3), 0 0 40px rgba(128, 203, 196, 0.1);
+}
+
+.hover-glow-green:hover {
+  box-shadow: 0 0 20px rgba(67, 160, 71, 0.3), 0 0 40px rgba(67, 160, 71, 0.1);
+}
+
+.hover-glow-purple:hover {
+  box-shadow: 0 0 20px rgba(168, 85, 247, 0.3), 0 0 40px rgba(168, 85, 247, 0.1);
+}
+
+.hover-glow-orange:hover {
+  box-shadow: 0 0 20px rgba(249, 115, 22, 0.3), 0 0 40px rgba(249, 115, 22, 0.1);
+}
+
+/* Dark mode variables */
+.dark {
+  --color-bg: #111827;
+  --color-surface: #1f2937;
+  --color-text: #f9fafb;
+  --color-text-secondary: #d1d5db;
+}
+
+/* Light mode variables */
+.light {
+  --color-bg: #FAFAFA;
+  --color-bg-alt: #F1F8E9;
+  --color-surface: #ffffff;
+  --color-text: #37474F;
+  --color-text-secondary: #546E7A;
+  transition: all 0.3s ease-in-out;
+}
+
+/* Enhanced theme transitions */
+* {
+  transition: background-color 0.3s ease-in-out,
+    color 0.3s ease-in-out,
+    border-color 0.3s ease-in-out,
+    box-shadow 0.3s ease-in-out;
+}
+
+/* Initial load animations */
+.animate-on-load {
+  animation: zoomInInitial 0.6s ease-out;
+}
+
+.animate-on-load-delayed {
+  animation: zoomInInitial 0.6s ease-out 0.1s both;
+}
+
+.animate-on-load-delayed-2 {
+  animation: zoomInInitial 0.6s ease-out 0.2s both;
+}
+
+.animate-on-load-delayed-3 {
+  animation: zoomInInitial 0.6s ease-out 0.3s both;
+}
+
+.animate-on-load-delayed-4 {
+  animation: zoomInInitial 0.6s ease-out 0.4s both;
+}
+
+/* Custom component styles */
+.btn {
+  @apply px-4 py-2 rounded-lg font-medium transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 transform hover:scale-105 active:scale-95 relative overflow-hidden;
+}
+
+.btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.btn:hover::before {
+  left: 100%;
+}
+
+.btn-primary {
+  @apply bg-gradient-to-r from-primary-500 to-primary-600 text-white hover:from-primary-600 hover:to-primary-700 focus:ring-primary-500 shadow-lg hover:shadow-xl;
+  background-size: 200% 200%;
+  animation: gradient-shift 3s ease infinite;
+}
+
+.btn-primary:hover {
+  @apply shadow-primary-500/50;
+  box-shadow: 0 10px 25px -5px rgba(34, 197, 94, 0.4), 0 10px 10px -5px rgba(34, 197, 94, 0.04);
+}
+
+.btn-secondary {
+  @apply bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-2 border-gray-200 dark:border-gray-600 hover:border-primary-300 dark:hover:border-primary-600 hover:bg-gray-50 dark:hover:bg-gray-700 focus:ring-primary-500 shadow-md hover:shadow-lg;
+}
+
+.btn-success {
+  @apply bg-gradient-to-r from-success-500 to-success-600 text-white hover:from-success-600 hover:to-success-700 focus:ring-success-500 shadow-lg hover:shadow-xl;
+}
+
+.btn-danger {
+  @apply bg-gradient-to-r from-danger-500 to-danger-600 text-white hover:from-danger-600 hover:to-danger-700 focus:ring-danger-500 shadow-lg hover:shadow-xl;
+}
+
+.btn-sm {
+  @apply px-3 py-1.5 text-sm;
+}
+
+.btn-lg {
+  @apply px-6 py-3 text-lg;
+}
+
+.card {
+  @apply bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700;
+}
+
+.input {
+  @apply w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100;
+}
+
+.input-sm {
+  @apply px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100;
+}
+
+.label {
+  @apply block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1;
+}
+
+/* Loading spinner */
+.spinner {
+  @apply animate-spin rounded-full border-2 border-gray-300 border-t-primary-600;
+}
+
+/* Transitions */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+.slide-enter-active,
+.slide-leave-active {
+  transition: transform 0.3s ease;
+}
+
+.slide-enter-from {
+  transform: translateX(-100%);
+}
+
+.slide-leave-to {
+  transform: translateX(100%);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-gray-100 dark:bg-gray-800;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-400 dark:bg-gray-600 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-500 dark:bg-gray-500;
+}
+
+/* Leaflet Map Styles */
+.leaflet-container {
+  @apply rounded-lg;
+}
+
+.leaflet-popup-content-wrapper {
+  @apply rounded-lg shadow-xl border-0;
+}
+
+.leaflet-popup-content {
+  margin: 0 !important;
+}
+
+.leaflet-popup-tip {
+  @apply shadow-lg;
+}
+
+.custom-marker {
+  background: transparent !important;
+  border: none !important;
+}
+
+.custom-popup .leaflet-popup-content-wrapper {
+  @apply bg-white rounded-lg shadow-2xl;
+}
+
+.custom-popup .leaflet-popup-tip {
+  @apply bg-white;
+}
+
+/* Dark theme support for map */
+.dark .leaflet-popup-content-wrapper {
+  @apply bg-gray-800 text-white;
+}
+
+.dark .leaflet-popup-tip {
+  @apply bg-gray-800;
+}
+
+.dark .custom-popup .leaflet-popup-content-wrapper {
+  @apply bg-gray-800;
+}
+
+.dark .custom-popup .leaflet-popup-tip {
+  @apply bg-gray-800;
+}
