@@ -1,8 +1,6 @@
 # ⚡ EcoVolt - Electric Vehicle Charging Station Management System
 A comprehensive full-stack web application for managing electric vehicle charging stations with real-time monitoring, interactive maps, and role-based administration.
 
-![EcoVolt Banner](https://via.placeholder.com/1200x400/22c55e/ffffff?text=EcoVolt+-+EV+Charging+Station+Management)
-
 ## 🌟 Features
 
 ### 🔐 **Authentication & User Management**
