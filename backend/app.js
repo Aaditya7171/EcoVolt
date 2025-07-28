@@ -42,6 +42,27 @@ app.get('/health', (req, res) => {
   });
 });
 
+// Manual database initialization endpoint
+app.post('/init-database', async (req, res) => {
+  try {
+    console.log('Manual database initialization requested');
+    await initDatabase();
+    res.json({
+      success: true,
+      message: 'Database initialized successfully',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Manual database initialization failed:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Database initialization failed',
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/chargers', chargerRoutes);
@@ -109,17 +130,32 @@ const startServer = async () => {
       console.log(`📚 API Documentation: http://localhost:${PORT}/`);
     });
 
-    // Initialize database tables in the background
+    // Initialize database tables in the background with retries
     setTimeout(async () => {
-      try {
-        console.log('🔄 Initializing database tables...');
-        await initDatabase();
-        console.log('✅ Database initialization completed successfully!');
-      } catch (error) {
-        console.error('⚠️ Database initialization failed, but server is still running:', error.message);
-        console.log('💡 You can manually create tables or check database connection');
+      let retryCount = 0;
+      const maxRetries = 5;
+
+      while (retryCount < maxRetries) {
+        try {
+          console.log(`🔄 Initializing database tables... (attempt ${retryCount + 1}/${maxRetries})`);
+          await initDatabase();
+          console.log('✅ Database initialization completed successfully!');
+          break;
+        } catch (error) {
+          retryCount++;
+          console.error(`⚠️ Database initialization failed (attempt ${retryCount}/${maxRetries}):`, error.message);
+
+          if (retryCount < maxRetries) {
+            const delay = Math.min(1000 * Math.pow(2, retryCount), 30000); // Exponential backoff, max 30s
+            console.log(`🔄 Retrying in ${delay/1000} seconds...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+          } else {
+            console.error('❌ Database initialization failed after all retries');
+            console.log('💡 You can manually initialize tables using POST /api/chargers/init-db');
+          }
+        }
       }
-    }, 1000);
+    }, 2000); // Increased initial delay
 
   } catch (error) {
     console.error('Failed to start server:', error);

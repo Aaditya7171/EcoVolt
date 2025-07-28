@@ -9,69 +9,85 @@ const router = express.Router();
 // Database health check endpoint
 router.get('/health', async (req, res) => {
   try {
-    const { query } = require('../config/database');
+    const { testConnection, checkTables, query } = require('../config/database');
+
+    console.log(`[${new Date().toISOString()}] Database health check requested`);
 
     // Test basic database connection
-    const connectionTest = await query('SELECT 1 as test');
+    const connectionTest = await testConnection();
+
+    if (!connectionTest.success) {
+      return res.status(503).json({
+        success: false,
+        message: 'Database connection failed',
+        data: {
+          connection: 'FAILED',
+          error: connectionTest.error,
+          timestamp: new Date().toISOString()
+        }
+      });
+    }
 
     // Check if required tables exist
-    const tablesCheck = await query(`
-      SELECT table_name
-      FROM information_schema.tables
-      WHERE table_schema = 'public'
-      AND table_name IN ('users', 'charging_stations', 'deletion_requests')
-      ORDER BY table_name
-    `);
+    const tablesCheck = await checkTables();
 
-    const existingTables = tablesCheck.rows.map(row => row.table_name);
-    const requiredTables = ['users', 'charging_stations', 'deletion_requests'];
-    const missingTables = requiredTables.filter(table => !existingTables.includes(table));
-
-    // Get basic counts
+    // Get basic counts if tables exist
     let counts = {};
     try {
-      if (existingTables.includes('users')) {
+      if (tablesCheck.existingTables.includes('users')) {
         const userCount = await query('SELECT COUNT(*) as count FROM users');
         counts.users = parseInt(userCount.rows[0].count);
       }
 
-      if (existingTables.includes('charging_stations')) {
+      if (tablesCheck.existingTables.includes('charging_stations')) {
         const stationCount = await query('SELECT COUNT(*) as count FROM charging_stations');
         counts.charging_stations = parseInt(stationCount.rows[0].count);
       }
 
-      if (existingTables.includes('deletion_requests')) {
+      if (tablesCheck.existingTables.includes('deletion_requests')) {
         const deletionCount = await query('SELECT COUNT(*) as count FROM deletion_requests');
         counts.deletion_requests = parseInt(deletionCount.rows[0].count);
       }
     } catch (countError) {
       console.error('Error getting counts:', countError);
+      counts.error = 'Failed to get table counts';
     }
 
-    const isHealthy = missingTables.length === 0;
+    const isHealthy = tablesCheck.success;
+
+    console.log(`[${new Date().toISOString()}] Database health check result: ${isHealthy ? 'HEALTHY' : 'UNHEALTHY'}`);
 
     res.status(isHealthy ? 200 : 503).json({
       success: isHealthy,
-      message: isHealthy ? 'Database is healthy' : 'Database has issues',
+      message: isHealthy ? 'Database is healthy' : 'Database has issues - missing tables',
       data: {
         connection: 'OK',
         tables: {
-          existing: existingTables,
-          missing: missingTables,
-          required: requiredTables
+          existing: tablesCheck.existingTables,
+          missing: tablesCheck.missingTables,
+          required: tablesCheck.requiredTables
         },
         counts: counts,
         timestamp: new Date().toISOString()
       }
     });
   } catch (error) {
-    console.error('Database health check error:', error);
+    console.error('Database health check error:', {
+      message: error.message,
+      code: error.code,
+      stack: error.stack
+    });
+
     res.status(503).json({
       success: false,
       message: 'Database health check failed',
-      error: {
-        message: error.message,
-        code: error.code
+      data: {
+        connection: 'ERROR',
+        error: {
+          message: error.message,
+          code: error.code
+        },
+        timestamp: new Date().toISOString()
       }
     });
   }

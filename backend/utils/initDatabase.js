@@ -2,9 +2,20 @@ const { query } = require('../config/database');
 
 const initDatabase = async () => {
   try {
-    console.log('Initializing database tables...');
+    console.log('🔄 Initializing database tables...');
+
+    // Test connection first
+    const { testConnection } = require('../config/database');
+    const connectionTest = await testConnection();
+
+    if (!connectionTest.success) {
+      throw new Error(`Database connection failed: ${connectionTest.error}`);
+    }
+
+    console.log('✅ Database connection verified');
 
     // Create users table
+    console.log('📝 Creating users table...');
     await query(`
       CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
@@ -18,6 +29,7 @@ const initDatabase = async () => {
     `);
 
     // Create charging_stations table
+    console.log('📝 Creating charging_stations table...');
     await query(`
       CREATE TABLE IF NOT EXISTS charging_stations (
         id SERIAL PRIMARY KEY,
@@ -36,6 +48,7 @@ const initDatabase = async () => {
     `);
 
     // Create deletion_requests table
+    console.log('📝 Creating deletion_requests table...');
     await query(`
       CREATE TABLE IF NOT EXISTS deletion_requests (
         id SERIAL PRIMARY KEY,
@@ -50,6 +63,7 @@ const initDatabase = async () => {
     `);
 
     // Create indexes for better performance
+    console.log('📝 Creating database indexes...');
     await query(`
       CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)
     `);
@@ -79,6 +93,7 @@ const initDatabase = async () => {
     `);
 
     // Create admin user if it doesn't exist
+    console.log('👤 Creating admin user...');
     try {
       const bcrypt = require('bcryptjs');
       const saltRounds = 10;
@@ -91,14 +106,19 @@ const initDatabase = async () => {
         ['Admin', 'toadityavijay@gmail.com', hashedPassword, 'admin']
       );
 
-      console.log('Admin user created/verified successfully');
+      console.log('✅ Admin user created/verified successfully');
     } catch (adminError) {
-      console.error('Error creating admin user:', adminError);
+      console.error('❌ Error creating admin user:', adminError);
+      // Don't throw here, continue with initialization
     }
 
-    console.log('Database tables initialized successfully!');
+    console.log('✅ Database tables initialized successfully!');
   } catch (error) {
-    console.error('Error initializing database:', error);
+    console.error('❌ Error initializing database:', {
+      message: error.message,
+      code: error.code,
+      stack: error.stack
+    });
     throw error;
   }
 };
