@@ -11,35 +11,76 @@ console.log('DB_USER:', process.env.DB_USER);
 console.log('DB_NAME:', process.env.DB_NAME);
 
 // Create a connection pool with better error handling
+let poolConfig;
+
+if (process.env.DATABASE_URL) {
+  // Use DATABASE_URL if available (common on Render)
+  console.log('Using DATABASE_URL for connection');
+  poolConfig = {
+    connectionString: process.env.DATABASE_URL,
+    ssl: {
+      rejectUnauthorized: false
+    }
+  };
+} else {
+  // Fallback to individual environment variables
+  console.log('Using individual DB environment variables');
+  poolConfig = {
+    host: process.env.DB_HOST || 'dpg-d0skslqdbo4c73f672c0-a.oregon-postgres.render.com',
+    port: parseInt(process.env.DB_PORT) || 5432,
+    user: process.env.DB_USER || 'eco_volt_user',
+    password: process.env.DB_PASS || 'tSMqWjKkZ8fr06MViYMPPers4XkNBfhu',
+    database: process.env.DB_NAME || 'eco_volt',
+    ssl: {
+      rejectUnauthorized: false
+    }
+  };
+}
+
+// Add common pool settings
 const pool = new Pool({
-  host: process.env.DB_HOST || 'dpg-d0skslqdbo4c73f672c0-a.oregon-postgres.render.com',
-  port: parseInt(process.env.DB_PORT) || 5432,
-  user: process.env.DB_USER || 'eco_volt_user',
-  password: process.env.DB_PASS || 'tSMqWjKkZ8fr06MViYMPPers4XkNBfhu',
-  database: process.env.DB_NAME || 'eco_volt',
-  ssl: {
-    rejectUnauthorized: false // Required for Render.com hosted PostgreSQL
-  },
-  max: 10, // Reduced to avoid overwhelming the database
-  min: 2, // Minimum connections to keep alive
+  ...poolConfig,
+  max: 10, // Maximum connections
+  min: 1, // Minimum connections to keep alive
   idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
-  connectionTimeoutMillis: 60000, // Increased to 60 seconds for connection establishment
-  acquireTimeoutMillis: 60000, // Increased to 60 seconds for client acquisition
-  statement_timeout: 120000, // Increased to 120 seconds for statement execution
-  query_timeout: 120000, // Increased to 120 seconds for query execution
+  connectionTimeoutMillis: 60000, // 60 seconds for connection establishment
+  acquireTimeoutMillis: 60000, // 60 seconds for client acquisition
+  statement_timeout: 120000, // 120 seconds for statement execution
+  query_timeout: 120000, // 120 seconds for query execution
   keepAlive: true, // Keep connections alive
   keepAliveInitialDelayMillis: 10000, // Initial delay for keep-alive
 });
 
 // Test the connection
-pool.on('connect', () => {
-  console.log('Connected to PostgreSQL database');
+pool.on('connect', (client) => {
+  console.log('✅ Connected to PostgreSQL database');
+  console.log('Connection details:', {
+    host: client.host,
+    port: client.port,
+    database: client.database,
+    user: client.user
+  });
 });
 
 pool.on('error', (err) => {
-  console.error('Unexpected error on idle client', err);
+  console.error('❌ Unexpected error on idle client:', {
+    message: err.message,
+    code: err.code,
+    errno: err.errno,
+    syscall: err.syscall,
+    address: err.address,
+    port: err.port
+  });
   // Don't exit the process, just log the error
   // The pool will handle reconnection automatically
+});
+
+pool.on('acquire', () => {
+  console.log('🔗 Client acquired from pool');
+});
+
+pool.on('release', () => {
+  console.log('🔓 Client released back to pool');
 });
 
 // Function to execute queries with retry logic
@@ -134,6 +175,21 @@ const checkTables = async () => {
     };
   }
 };
+
+// Test connection on startup
+(async () => {
+  try {
+    console.log('🔍 Testing database connection on startup...');
+    const testResult = await testConnection();
+    if (testResult.success) {
+      console.log('✅ Database connection test successful');
+    } else {
+      console.error('❌ Database connection test failed:', testResult.error);
+    }
+  } catch (error) {
+    console.error('❌ Database connection test error:', error.message);
+  }
+})();
 
 module.exports = {
   query,
