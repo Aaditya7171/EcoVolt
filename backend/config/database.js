@@ -20,12 +20,12 @@ const pool = new Pool({
   ssl: {
     rejectUnauthorized: false // Required for Render.com hosted PostgreSQL
   },
-  max: 10, // Maximum number of clients in the pool
-  idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
-  connectionTimeoutMillis: 10000, // Return an error after 10 seconds if connection could not be established
-  acquireTimeoutMillis: 10000, // Return an error after 10 seconds if a client cannot be acquired
-  statement_timeout: 30000, // 30 seconds
-  query_timeout: 30000, // 30 seconds
+  max: 20, // Increased maximum number of clients in the pool
+  idleTimeoutMillis: 60000, // Increased to 60 seconds - close idle clients after 60 seconds
+  connectionTimeoutMillis: 30000, // Increased to 30 seconds - timeout for connection establishment
+  acquireTimeoutMillis: 30000, // Increased to 30 seconds - timeout for client acquisition
+  statement_timeout: 60000, // Increased to 60 seconds - timeout for statement execution
+  query_timeout: 60000, // Increased to 60 seconds - timeout for query execution
 });
 
 // Test the connection

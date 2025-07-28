@@ -6,7 +6,7 @@ class GeocodingService {
   constructor() {
     this.apiClient = axios.create({
       baseURL: `${API_BASE_URL}/geocoding`,
-      timeout: 10000
+      timeout: 30000 // Increased to 30 seconds for geocoding
     })
 
     // Add auth token to requests

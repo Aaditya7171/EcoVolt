@@ -37,7 +37,9 @@ export const useChargersStore = defineStore('chargers', () => {
   const totalChargers = computed(() => chargers.value.length)
 
   // Actions
-  const fetchChargers = async (apiFilters = {}) => {
+  const fetchChargers = async (apiFilters = {}, retryCount = 0) => {
+    const maxRetries = 2
+
     try {
       loading.value = true
       error.value = null
@@ -46,10 +48,52 @@ export const useChargersStore = defineStore('chargers', () => {
 
       if (response.success) {
         chargers.value = response.data.stations || []
+        console.log(`Successfully loaded ${chargers.value.length} charging stations`)
       }
     } catch (err) {
-      error.value = err.message || 'Failed to fetch chargers'
       console.error('Fetch chargers error:', err)
+
+      // Enhanced error handling with user-friendly messages
+      let errorMessage = 'Failed to fetch chargers'
+
+      if (err.message?.includes('timeout') || err.message?.includes('timed out')) {
+        errorMessage = 'Loading is taking longer than usual. The server may be experiencing high load. Please wait or try refreshing the page.'
+      } else if (err.message?.includes('Network Error') || err.message?.includes('ENOTFOUND')) {
+        errorMessage = 'Unable to connect to the server. Please check your internet connection and try again.'
+      } else if (err.message?.includes('500') || err.status === 500) {
+        errorMessage = 'Server error occurred. The database may be initializing or experiencing issues. Please try again in a few minutes.'
+      } else if (err.message?.includes('503') || err.status === 503) {
+        errorMessage = 'Service temporarily unavailable. The database may be starting up. Please try again in a moment.'
+      } else if (err.message?.includes('504') || err.status === 504) {
+        errorMessage = 'Server response timed out. Please try again or contact support if the issue persists.'
+      } else if (err.response?.data?.message) {
+        errorMessage = err.response.data.message
+      } else if (err.message) {
+        errorMessage = err.message
+      }
+
+      // Log detailed error information for debugging
+      console.error('Detailed fetch error:', {
+        message: err.message,
+        status: err.status || err.response?.status,
+        data: err.response?.data,
+        code: err.code
+      })
+
+      error.value = errorMessage
+
+      // Auto-retry for network/timeout errors
+      if (retryCount < maxRetries && (
+        err.message?.includes('timeout') ||
+        err.message?.includes('Network Error') ||
+        err.message?.includes('ENOTFOUND')
+      )) {
+        console.log(`Auto-retrying fetch chargers... (attempt ${retryCount + 1}/${maxRetries})`)
+        setTimeout(() => {
+          fetchChargers(apiFilters, retryCount + 1)
+        }, 2000 * (retryCount + 1)) // Increasing delay
+        return
+      }
     } finally {
       loading.value = false
     }

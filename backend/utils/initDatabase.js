@@ -35,6 +35,20 @@ const initDatabase = async () => {
       )
     `);
 
+    // Create deletion_requests table
+    await query(`
+      CREATE TABLE IF NOT EXISTS deletion_requests (
+        id SERIAL PRIMARY KEY,
+        station_id INTEGER REFERENCES charging_stations(id) ON DELETE CASCADE,
+        requested_by INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+        reviewed_by INTEGER REFERENCES users(id),
+        reason TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
     // Create indexes for better performance
     await query(`
       CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)
@@ -50,6 +64,18 @@ const initDatabase = async () => {
 
     await query(`
       CREATE INDEX IF NOT EXISTS idx_charging_stations_approval_status ON charging_stations(approval_status)
+    `);
+
+    await query(`
+      CREATE INDEX IF NOT EXISTS idx_deletion_requests_status ON deletion_requests(status)
+    `);
+
+    await query(`
+      CREATE INDEX IF NOT EXISTS idx_deletion_requests_station_id ON deletion_requests(station_id)
+    `);
+
+    await query(`
+      CREATE INDEX IF NOT EXISTS idx_deletion_requests_requested_by ON deletion_requests(requested_by)
     `);
 
     // Create admin user if it doesn't exist

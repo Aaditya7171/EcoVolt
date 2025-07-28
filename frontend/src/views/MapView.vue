@@ -79,7 +79,8 @@
         <div v-if="chargersStore.loading || mapLoading" class="absolute inset-0 bg-white dark:bg-gray-800 bg-opacity-75 flex items-center justify-center">
           <div class="text-center">
             <div class="spinner w-8 h-8 mx-auto mb-2"></div>
-            <p class="text-sm text-gray-600 dark:text-gray-400">Loading map and stations...</p>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mb-1">Loading map and stations...</p>
+            <p class="text-xs text-gray-500 dark:text-gray-500">This may take a moment if the server is experiencing high load.</p>
           </div>
         </div>
 

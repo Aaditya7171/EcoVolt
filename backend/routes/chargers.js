@@ -6,6 +6,103 @@ const adminMiddleware = require('../middleware/adminMiddleware');
 
 const router = express.Router();
 
+// Database health check endpoint
+router.get('/health', async (req, res) => {
+  try {
+    const { query } = require('../config/database');
+
+    // Test basic database connection
+    const connectionTest = await query('SELECT 1 as test');
+
+    // Check if required tables exist
+    const tablesCheck = await query(`
+      SELECT table_name
+      FROM information_schema.tables
+      WHERE table_schema = 'public'
+      AND table_name IN ('users', 'charging_stations', 'deletion_requests')
+      ORDER BY table_name
+    `);
+
+    const existingTables = tablesCheck.rows.map(row => row.table_name);
+    const requiredTables = ['users', 'charging_stations', 'deletion_requests'];
+    const missingTables = requiredTables.filter(table => !existingTables.includes(table));
+
+    // Get basic counts
+    let counts = {};
+    try {
+      if (existingTables.includes('users')) {
+        const userCount = await query('SELECT COUNT(*) as count FROM users');
+        counts.users = parseInt(userCount.rows[0].count);
+      }
+
+      if (existingTables.includes('charging_stations')) {
+        const stationCount = await query('SELECT COUNT(*) as count FROM charging_stations');
+        counts.charging_stations = parseInt(stationCount.rows[0].count);
+      }
+
+      if (existingTables.includes('deletion_requests')) {
+        const deletionCount = await query('SELECT COUNT(*) as count FROM deletion_requests');
+        counts.deletion_requests = parseInt(deletionCount.rows[0].count);
+      }
+    } catch (countError) {
+      console.error('Error getting counts:', countError);
+    }
+
+    const isHealthy = missingTables.length === 0;
+
+    res.status(isHealthy ? 200 : 503).json({
+      success: isHealthy,
+      message: isHealthy ? 'Database is healthy' : 'Database has issues',
+      data: {
+        connection: 'OK',
+        tables: {
+          existing: existingTables,
+          missing: missingTables,
+          required: requiredTables
+        },
+        counts: counts,
+        timestamp: new Date().toISOString()
+      }
+    });
+  } catch (error) {
+    console.error('Database health check error:', error);
+    res.status(503).json({
+      success: false,
+      message: 'Database health check failed',
+      error: {
+        message: error.message,
+        code: error.code
+      }
+    });
+  }
+});
+
+// Database initialization endpoint
+router.post('/init-db', async (req, res) => {
+  try {
+    const { initDatabase } = require('../utils/initDatabase');
+
+    console.log('Manual database initialization requested');
+    await initDatabase();
+
+    res.json({
+      success: true,
+      message: 'Database initialized successfully',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Manual database initialization error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Database initialization failed',
+      error: {
+        message: error.message,
+        code: error.code
+      }
+    });
+  }
+});
+
 // Debug endpoint to view all data (remove in production)
 router.get('/debug/all-data', authMiddleware, async (req, res) => {
   try {
@@ -59,15 +156,33 @@ router.get('/debug/all-data', authMiddleware, async (req, res) => {
 // @desc    Get all charging stations with optional filters
 // @access  Public (for guest users)
 router.get('/', async (req, res) => {
+  const startTime = Date.now();
+
   try {
+    console.log(`[${new Date().toISOString()}] GET /api/chargers - Starting request`);
+
     const { status, power_output, connector_type } = req.query;
 
     const filters = {};
     if (status) filters.status = status;
-    if (power_output) filters.power_output = parseInt(power_output);
+    if (power_output) {
+      const parsedPowerOutput = parseInt(power_output);
+      if (isNaN(parsedPowerOutput)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid power_output parameter. Must be a number.'
+        });
+      }
+      filters.power_output = parsedPowerOutput;
+    }
     if (connector_type) filters.connector_type = connector_type;
 
+    console.log(`[${new Date().toISOString()}] Applying filters:`, filters);
+
     const stations = await ChargingStation.findAll(filters);
+
+    const duration = Date.now() - startTime;
+    console.log(`[${new Date().toISOString()}] GET /api/chargers - Completed in ${duration}ms, found ${stations.length} stations`);
 
     res.json({
       success: true,
@@ -75,13 +190,51 @@ router.get('/', async (req, res) => {
       data: {
         stations: stations.map(station => station.toJSON()),
         count: stations.length
+      },
+      meta: {
+        duration: duration,
+        filters: filters,
+        timestamp: new Date().toISOString()
       }
     });
   } catch (error) {
-    console.error('Get chargers error:', error);
-    res.status(500).json({
+    const duration = Date.now() - startTime;
+    console.error(`[${new Date().toISOString()}] Get chargers error after ${duration}ms:`, {
+      message: error.message,
+      stack: error.stack,
+      code: error.code,
+      detail: error.detail
+    });
+
+    // Provide more specific error messages based on error type
+    let errorMessage = 'Server error while retrieving charging stations';
+    let statusCode = 500;
+
+    if (error.code === 'ECONNREFUSED') {
+      errorMessage = 'Database connection failed. Please try again later.';
+      statusCode = 503;
+    } else if (error.code === '42P01') { // Table does not exist
+      errorMessage = 'Database tables not initialized. Please contact support.';
+      statusCode = 503;
+    } else if (error.code === '42703') { // Column does not exist
+      errorMessage = 'Database schema mismatch. Please contact support.';
+      statusCode = 503;
+    } else if (error.message?.includes('timeout')) {
+      errorMessage = 'Database query timed out. Please try again.';
+      statusCode = 504;
+    }
+
+    res.status(statusCode).json({
       success: false,
-      message: 'Server error while retrieving charging stations'
+      message: errorMessage,
+      meta: {
+        duration: duration,
+        timestamp: new Date().toISOString(),
+        ...(process.env.NODE_ENV === 'development' && {
+          error: error.message,
+          code: error.code
+        })
+      }
     });
   }
 });
@@ -91,8 +244,33 @@ router.get('/', async (req, res) => {
 // @access  Admin only
 router.get('/pending-counts', authMiddleware, adminMiddleware, async (req, res) => {
   try {
-    const pendingStations = await ChargingStation.findPending();
-    const pendingDeletions = await DeletionRequest.findPending();
+    console.log(`[${new Date().toISOString()}] GET /api/chargers/pending-counts - Starting request`);
+
+    // Try to get pending stations with error handling
+    let pendingStations = [];
+    try {
+      pendingStations = await ChargingStation.findPending();
+    } catch (stationError) {
+      console.error('Error fetching pending stations:', stationError);
+      // Continue with empty array if table doesn't exist yet
+      if (stationError.code !== '42P01') { // Not "table does not exist"
+        throw stationError;
+      }
+    }
+
+    // Try to get pending deletions with error handling
+    let pendingDeletions = [];
+    try {
+      pendingDeletions = await DeletionRequest.findPending();
+    } catch (deletionError) {
+      console.error('Error fetching pending deletions:', deletionError);
+      // Continue with empty array if table doesn't exist yet
+      if (deletionError.code !== '42P01') { // Not "table does not exist"
+        throw deletionError;
+      }
+    }
+
+    console.log(`[${new Date().toISOString()}] Found ${pendingStations.length} pending stations, ${pendingDeletions.length} pending deletions`);
 
     res.json({
       success: true,
@@ -104,10 +282,26 @@ router.get('/pending-counts', authMiddleware, adminMiddleware, async (req, res) 
       }
     });
   } catch (error) {
-    console.error('Get pending counts error:', error);
-    res.status(500).json({
+    console.error('Get pending counts error:', {
+      message: error.message,
+      code: error.code,
+      stack: error.stack
+    });
+
+    let errorMessage = 'Server error while retrieving pending counts';
+    let statusCode = 500;
+
+    if (error.code === 'ECONNREFUSED') {
+      errorMessage = 'Database connection failed. Please try again later.';
+      statusCode = 503;
+    } else if (error.code === '42P01') {
+      errorMessage = 'Database tables not initialized. Please contact support.';
+      statusCode = 503;
+    }
+
+    res.status(statusCode).json({
       success: false,
-      message: 'Server error while retrieving pending counts'
+      message: errorMessage
     });
   }
 });

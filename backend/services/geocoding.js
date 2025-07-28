@@ -29,7 +29,7 @@ class GeocodingService {
         headers: {
           'User-Agent': 'EcoVolt-ChargingStation-App/1.0 (contact@ecovolt.com)'
         },
-        timeout: 10000 // 10 second timeout
+        timeout: 30000 // Increased to 30 second timeout
       });
 
       return response.data.map(location => ({
@@ -96,7 +96,7 @@ class GeocodingService {
         headers: {
           'User-Agent': 'EcoVolt-ChargingStation-App/1.0 (contact@ecovolt.com)'
         },
-        timeout: 10000
+        timeout: 30000 // Increased to 30 second timeout
       });
 
       if (response.data && response.data.display_name) {
